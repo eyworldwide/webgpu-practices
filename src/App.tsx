@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import logo from './logo.svg';
 import './App.css';
-import { main } from './demo/computation';
+import { main } from './demo/triangle';
 
 function App() {
   useEffect(() => {

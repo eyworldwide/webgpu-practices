@@ -1,29 +1,31 @@
 export async function main () {
   const adapter = await navigator.gpu?.requestAdapter();
-  const device = await adapter?.requestDevice() as GPUDevice;
+  const device = await adapter?.requestDevice();
 
-  const canvas = document.querySelector('canvas');
-  const context = canvas?.getContext('webgpu');
+  if (!device) {
+    fail('need a brrowser that supports WebGPU');
+    return;
+  }
 
-  if (!context) return;
-
+  const canvas = document.querySelector('canvas')!;
+  const context = canvas.getContext('webgpu')!;
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
   context.configure({
     device,
-    format: presentationFormat
-  })
+    format: presentationFormat,
+  });
 
-  const module = device.createShaderModule({
-    label: 'our hardcoded red triangle shader',
+  const module = device.createShaderModule({ 
+    label: `our hardcoded red triangle shaders`,
     code: `
       @vertex fn vs(
-        @builtin(vertex_index) vertexIndex: u32
+        @builtin(vertex_index) vertexIndex : u32
       ) -> @builtin(position) vec4f {
         let pos = array(
-          vec2f(0.0, 0.5),
           vec2f(-0.5, -0.5),
-          vec2f(0.5, -0.5)
+          vec2f(0.5, -0.5),
+          vec2f(0.0, 0.5)
         );
 
         return vec4f(pos[vertexIndex], 0.0, 1.0);
@@ -39,15 +41,13 @@ export async function main () {
     label: 'our hardcoded red triangle pipeline',
     layout: 'auto',
     vertex: {
-      module
+      entryPoint: 'vs',
+      module,
     },
     fragment: {
+      entryPoint: 'fs',
       module,
-      targets: [
-        {
-          format: presentationFormat
-        }
-      ]
+      targets: [{ format: presentationFormat }]
     },
   });
 
@@ -55,18 +55,18 @@ export async function main () {
     label: 'our basic canvas renderPass',
     colorAttachments: [
       {
-        view: context.getCurrentTexture().createView(),
-        clearValue: [0.3, 0.3, 0.3, 1.0],
+        view:  context.getCurrentTexture().createView(),
+        clearValue: [0.3, 0.3, 0.3, 1],
         loadOp: 'clear',
         storeOp: 'store'
       }
-    ]  as GPURenderPassColorAttachment[]
-  };
+    ] as GPURenderPassColorAttachment[]
+  }
 
-  function render () {
-    const encoder = device.createCommandEncoder({
-      label: 'our encoder',
-    })
+  function render() {
+    if (!device) return;
+
+    const encoder = device.createCommandEncoder({ label: 'our encoder' });
 
     const pass = encoder.beginRenderPass(renderPassDescriptor);
     pass.setPipeline(pipeline);
